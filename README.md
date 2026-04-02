@@ -1,5 +1,11 @@
 # ai-codex
 
+[![Built by Claude Code](https://img.shields.io/badge/Built%20by-Claude%20Code-blueviolet?logo=anthropic)](https://claude.ai/code)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-blue.svg)](https://www.typescriptlang.org/)
+
+> **This project was entirely designed, written, and published by [Claude Code](https://claude.ai/code) (Anthropic's AI coding assistant).** The concept, implementation, documentation, and examples were all generated in a single conversation session.
+
 Generate a compact codebase index that gives AI coding assistants instant context about your project structure. Instead of wasting 50K+ tokens on file exploration at the start of every conversation, your AI assistant reads a pre-built index and gets to work immediately.
 
 ## Why
