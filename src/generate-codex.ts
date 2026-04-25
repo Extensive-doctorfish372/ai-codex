@@ -175,9 +175,16 @@ function readFileSafe(filePath: string): string {
   }
 }
 
-function pathToRoute(filePath: string, base: string): string {
+function pathToRoute(filePath: string, base: string, routerType: 'app' | 'pages' = 'app'): string {
   let rel = path.relative(base, filePath);
-  rel = path.dirname(rel);
+  if (routerType === 'pages') {
+    // Pages Router: filename is the route segment; index/ collapses to parent
+    rel = rel.replace(/\.(tsx?|jsx?)$/, '');
+    rel = rel.replace(/(^|\/)index$/, '$1');
+  } else {
+    // App Router: route.ts/page.tsx — file is named, parent dir is the route
+    rel = path.dirname(rel);
+  }
   // Strip Next.js route groups: (name)
   rel = rel.replace(/\([\w-]+\)\/?/g, '');
   // Convert [[...param]] optional catch-all, then [param] to :param
@@ -185,6 +192,7 @@ function pathToRoute(filePath: string, base: string): string {
   rel = rel.replace(/\[([^\]]+)\]/g, ':$1');
   rel = '/' + rel.replace(/\\/g, '/');
   if (rel === '/.') rel = '/';
+  if (rel.length > 1 && rel.endsWith('/')) rel = rel.slice(0, -1);
   return rel;
 }
 
@@ -199,6 +207,7 @@ function pad(str: string, len: number): string {
 interface FrameworkInfo {
   name: string;
   appDir: string | null;
+  routerType: 'app' | 'pages' | null;
   libDirs: string[];
   componentDirs: string[];
   hasPrisma: boolean;
@@ -210,6 +219,7 @@ function detectFramework(config: Config): FrameworkInfo {
   const info: FrameworkInfo = {
     name: 'generic',
     appDir: null,
+    routerType: null,
     libDirs: [],
     componentDirs: [],
     hasPrisma: false,
@@ -222,40 +232,58 @@ function detectFramework(config: Config): FrameworkInfo {
     .find((f) => fs.existsSync(path.join(ROOT, f)));
   if (nextConfig) {
     info.name = 'nextjs';
-    // App Router: prefer the candidate (src/app or app) with more router content.
-    // Tie-break to src/app (Next.js convention). This handles stray empty src/app
-    // leftovers that would otherwise mask a populated root app/.
-    const appCandidates = ['src/app', 'app']
-      .map((c) => path.join(ROOT, c))
-      .filter((p) => fs.existsSync(p) && fs.statSync(p).isDirectory());
-    if (appCandidates.length > 0) {
-      const countRouterFiles = (dir: string): number => {
-        let n = 0;
-        const stack = [dir];
-        while (stack.length > 0 && n < 5) {
-          const d = stack.pop()!;
-          let entries: fs.Dirent[];
-          try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
-          for (const e of entries) {
-            if (n >= 5) break;
-            if (e.isDirectory() && !info.skipDirs.has(e.name)) stack.push(path.join(d, e.name));
-            else if (e.isFile() && /^(route|page)\.(tsx?|jsx?)$/.test(e.name)) n++;
+    // Count router-shaped files in a candidate dir, capped at `cap`. Used to
+    // pick the populated candidate when both src/<dir> and <dir> exist (a stray
+    // leftover would otherwise mask the real one).
+    const PAGES_SPECIAL_NAMES = new Set(['_app', '_document', '_error', 'middleware']);
+    const countRouterFiles = (dir: string, kind: 'app' | 'pages', cap = 5): number => {
+      let n = 0;
+      const stack = [dir];
+      while (stack.length > 0 && n < cap) {
+        const d = stack.pop()!;
+        let entries: fs.Dirent[];
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+        for (const e of entries) {
+          if (n >= cap) break;
+          if (e.isDirectory() && !info.skipDirs.has(e.name)) {
+            stack.push(path.join(d, e.name));
+          } else if (e.isFile()) {
+            const name = e.name;
+            if (kind === 'app') {
+              if (/^(route|page)\.(tsx?|jsx?)$/.test(name)) n++;
+            } else {
+              if (name.endsWith('.d.ts')) continue;
+              if (!/\.(tsx?|jsx?)$/.test(name)) continue;
+              const baseName = name.replace(/\.(tsx?|jsx?)$/, '');
+              if (PAGES_SPECIAL_NAMES.has(baseName)) continue;
+              n++;
+            }
           }
         }
-        return n;
-      };
-      const scored = appCandidates.map((p) => ({ p, c: countRouterFiles(p) }));
+      }
+      return n;
+    };
+    const pickPopulated = (candidates: string[], kind: 'app' | 'pages'): string | null => {
+      const present = candidates
+        .map((c) => path.join(ROOT, c))
+        .filter((p) => fs.existsSync(p) && fs.statSync(p).isDirectory());
+      if (present.length === 0) return null;
+      const scored = present.map((p) => ({ p, c: countRouterFiles(p, kind) }));
       scored.sort((a, b) => b.c - a.c);
-      info.appDir = scored[0].p;
+      return scored[0].p;
+    };
+    // App Router: prefer src/app over app, tie-break by population count.
+    const appPick = pickPopulated(['src/app', 'app'], 'app');
+    if (appPick) {
+      info.appDir = appPick;
+      info.routerType = 'app';
     }
-    // Pages Router fallback when no App Router is present (src/pages/ before pages/)
+    // Pages Router fallback (only if no App Router was picked).
     if (!info.appDir) {
-      for (const candidate of ['src/pages', 'pages']) {
-        const fullPath = path.join(ROOT, candidate);
-        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
-          info.appDir = fullPath;
-          break;
-        }
+      const pagesPick = pickPopulated(['src/pages', 'pages'], 'pages');
+      if (pagesPick) {
+        info.appDir = pagesPick;
+        info.routerType = 'pages';
       }
     }
   }
@@ -336,12 +364,19 @@ function generateRoutes(framework: FrameworkInfo): string | null {
   const apiDir = path.join(framework.appDir, 'api');
   if (!fs.existsSync(apiDir)) return null;
 
-  const routeFiles = walk(apiDir, ['route.ts', 'route.js'], framework.skipDirs);
+  const isPagesRouter = framework.routerType === 'pages';
+  const routeFiles = isPagesRouter
+    ? walk(apiDir, ['.ts', '.tsx', '.js', '.jsx'], framework.skipDirs).filter((f) => !f.endsWith('.d.ts'))
+    : walk(apiDir, ['route.ts', 'route.tsx', 'route.js', 'route.jsx'], framework.skipDirs);
   if (routeFiles.length === 0) return null;
 
   const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
   const HTTP_METHOD_REGEXES = new Map<string, RegExp>(
     HTTP_METHODS.map((m) => [m, new RegExp(`export\\s+(async\\s+)?function\\s+${m}\\b`)])
+  );
+  // Pages Router: handlers branch on req.method, not on export name.
+  const PAGES_METHOD_REGEXES = new Map<string, RegExp>(
+    HTTP_METHODS.map((m) => [m, new RegExp(`(req|request)\\.method\\s*===?\\s*['"\`]${m}['"\`]`, 'i')])
   );
 
   interface RouteInfo {
@@ -356,12 +391,18 @@ function generateRoutes(framework: FrameworkInfo): string | null {
     const content = readFileSafe(file);
     if (!content) continue;
 
-    const route = pathToRoute(file, framework.appDir!);
+    const route = pathToRoute(file, framework.appDir!, framework.routerType || 'app');
 
     const methods: string[] = [];
-    for (const m of HTTP_METHODS) {
-      if (HTTP_METHOD_REGEXES.get(m)!.test(content)) {
-        methods.push(m);
+    if (isPagesRouter) {
+      for (const m of HTTP_METHODS) {
+        if (PAGES_METHOD_REGEXES.get(m)!.test(content)) methods.push(m);
+      }
+      // Fallback: handler with default export but no method branch — mark as ANY.
+      if (methods.length === 0 && /export\s+default\s+/.test(content)) methods.push('ANY');
+    } else {
+      for (const m of HTTP_METHODS) {
+        if (HTTP_METHOD_REGEXES.get(m)!.test(content)) methods.push(m);
       }
     }
     if (methods.length === 0) continue;
@@ -437,7 +478,22 @@ function generateRoutes(framework: FrameworkInfo): string | null {
 function generatePages(framework: FrameworkInfo): string | null {
   if (!framework.appDir) return null;
 
-  const pageFiles = walk(framework.appDir, ['page.tsx', 'page.jsx', 'page.ts', 'page.js'], framework.skipDirs);
+  const isPagesRouter = framework.routerType === 'pages';
+  let pageFiles: string[];
+  if (isPagesRouter) {
+    const PAGES_SPECIALS = new Set(['_app', '_document', '_error', 'middleware']);
+    pageFiles = walk(framework.appDir, ['.tsx', '.jsx', '.ts', '.js'], framework.skipDirs).filter((f) => {
+      if (f.endsWith('.d.ts')) return false;
+      const rel = path.relative(framework.appDir!, f);
+      const segs = rel.split(path.sep);
+      if (segs[0] === 'api') return false; // api routes handled by generateRoutes
+      const baseName = path.basename(f).replace(/\.(tsx?|jsx?)$/, '');
+      if (PAGES_SPECIALS.has(baseName)) return false;
+      return true;
+    });
+  } else {
+    pageFiles = walk(framework.appDir, ['page.tsx', 'page.jsx', 'page.ts', 'page.js'], framework.skipDirs);
+  }
   if (pageFiles.length === 0) return null;
 
   interface PageInfo {
@@ -452,7 +508,7 @@ function generatePages(framework: FrameworkInfo): string | null {
     const content = readFileSafe(file);
     if (!content) continue;
 
-    const route = pathToRoute(file, framework.appDir!);
+    const route = pathToRoute(file, framework.appDir!, framework.routerType || 'app');
     const isClient = /^(?:'use client'|"use client")/.test(content.slice(0, 50).trimStart());
 
     let exportName = '';
